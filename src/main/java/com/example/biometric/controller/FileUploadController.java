@@ -1,4 +1,4 @@
-package com.example.biometric;
+package com.example.biometric.controller;
 
 import java.io.IOException;
 import java.util.stream.Collectors;
@@ -21,6 +21,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.example.biometric.storage.StorageFileNotFoundException;
 import com.example.biometric.storage.StorageService;
+import com.example.biometric.fingerprint.SourceAFIS;
 
 @Controller
 public class FileUploadController {
@@ -28,6 +29,8 @@ public class FileUploadController {
 	private final StorageService storageService;
 
 	@Autowired
+	private SourceAFIS sourceAFIS;
+
 	public FileUploadController(StorageService storageService) {
 		this.storageService = storageService;
 	}
@@ -41,6 +44,11 @@ public class FileUploadController {
 				.collect(Collectors.toList()));
 
 		return "uploadForm";
+	}
+
+	@GetMapping("/compare")
+	public String compareFingerprint(Model model) throws IOException {
+		return "compareForm";
 	}
 
 	@GetMapping("/files/{filename:.+}")
@@ -57,19 +65,35 @@ public class FileUploadController {
 	}
 
 	@PostMapping("/")
-	public String handleFileUpload(@RequestParam("file") MultipartFile file,
+	public String handleFileUpload(@RequestParam("file") MultipartFile file, @RequestParam("name") String name,
 			RedirectAttributes redirectAttributes) {
 
 		storageService.store(file);
+		Boolean output = sourceAFIS.addFingerprint(name, file.getName());
+		redirectAttributes.addFlashAttribute("message",
+				output + "You successfully uploaded " + file.getOriginalFilename() + "!");
+		return "redirect:/";
+	}
+
+	@PostMapping("/compare")
+	public String handleFileCompare(@RequestParam("file") MultipartFile file,
+			RedirectAttributes redirectAttributes) {
+
+		storageService.store(file);
+		String output = sourceAFIS.compareAllFingerprints(file.getName());
 		redirectAttributes.addFlashAttribute("message",
 				"You successfully uploaded " + file.getOriginalFilename() + "!");
 
-		return "redirect:/";
+		redirectAttributes.addFlashAttribute("message", output);
+		System.out.println(output);
+
+		return "redirect:/compare";
 	}
 
 	@ExceptionHandler(StorageFileNotFoundException.class)
 	public ResponseEntity<?> handleStorageFileNotFound(StorageFileNotFoundException exc) {
 		return ResponseEntity.notFound().build();
 	}
+	
 
 }

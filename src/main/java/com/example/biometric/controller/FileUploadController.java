@@ -22,13 +22,13 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.example.biometric.model.Fingerprint;
+import com.example.biometric.service.FingerprintService;
+import com.example.biometric.service.StorageService;
 import com.example.biometric.storage.StorageFileNotFoundException;
-import com.example.biometric.storage.StorageService;
 import com.machinezoo.sourceafis.FingerprintImage;
 import com.machinezoo.sourceafis.FingerprintMatcher;
 import com.machinezoo.sourceafis.FingerprintTemplate;
-import com.example.biometric.model.Fingerprint;
-import com.example.biometric.service.FingerprintService;
 
 @Controller
 public class FileUploadController {
@@ -87,7 +87,7 @@ public class FileUploadController {
 			RedirectAttributes redirectAttributes) {
 
 		storageService.store(file);
-		String output = compareAllFingerprints(file.getName());
+		String output = compareAllFingerprints(file.getName(), false);
 		redirectAttributes.addFlashAttribute("message",
 				"You successfully uploaded " + file.getOriginalFilename() + "!");
 
@@ -119,9 +119,52 @@ public class FileUploadController {
         return false;
     }
 
-    private String compareAllFingerprints(String filePath) {
+	private String compareAllFingerprints(String filePath, Boolean useTemplate) {
+		if (useTemplate) {
+			return compareAllFingerprintsUsingTemplate(filePath);
+		} else {
+			return compareAllFingerprintsUsingImages(filePath);
+		}
+        
+    }
+
+    private String compareAllFingerprintsUsingTemplate(String filePath) {
         FingerprintImage image;
         try {
+            image = new FingerprintImage(Files.readAllBytes(Paths.get(filePath)));
+            var probe = new FingerprintTemplate(image);
+            var matcher = new FingerprintMatcher(probe);
+            double max = Double.NEGATIVE_INFINITY;
+            String match = "None Matched";
+            List<Fingerprint> allFingerprints = fingerprintService.getAllFingerprints();
+            for (Fingerprint fingerprint : allFingerprints) {
+                double similarity = matcher.match(fingerprint.getTemplate());
+                if (similarity > max) {
+                    max = similarity;
+                    match = fingerprint.getName() + " matched with " + similarity * 100 + "% similarity";
+                }
+            }
+            return match;
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+	private String compareAllFingerprintsUsingImages(String filePath) {
+        FingerprintImage image;
+        try {
+
+			List<String> FingerprintFiles = storageService.loadAll().map(
+				path -> MvcUriComponentsBuilder.fromMethodName(FileUploadController.class,
+						"serveFile", path.getFileName().toString()).build().toUri().toString())
+				.collect(Collectors.toList());
+			for (String fingerprintFile : FingerprintFiles) {
+				System.out.println(fingerprintFile);
+			}
+
+
             image = new FingerprintImage(Files.readAllBytes(Paths.get(filePath)));
             var probe = new FingerprintTemplate(image);
             var matcher = new FingerprintMatcher(probe);

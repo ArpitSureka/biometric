@@ -1,4 +1,4 @@
-package com.example.biometric.storage;
+package com.example.biometric.service;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,6 +15,10 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.FileSystemUtils;
 import org.springframework.web.multipart.MultipartFile;
+
+import com.example.biometric.storage.StorageException;
+import com.example.biometric.storage.StorageFileNotFoundException;
+import com.example.biometric.storage.StorageProperties;
 
 @Service
 public class FileSystemStorageService implements StorageService {

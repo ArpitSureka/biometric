@@ -1,11 +1,10 @@
-package com.example.biometric.storage;
-
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.core.io.Resource;
-import org.springframework.web.multipart.MultipartFile;
+package com.example.biometric.service;
 
 import java.nio.file.Path;
 import java.util.stream.Stream;
+
+import org.springframework.core.io.Resource;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface StorageService {
     void init();

@@ -1,28 +1,27 @@
 package com.example.biometric.model;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import java.io.Serializable;
 
 import com.machinezoo.sourceafis.FingerprintTemplate;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
 import lombok.NoArgsConstructor;
 
 // import lombok.Data;
 
 @Entity
 @Table(name = "fingerprint")
-@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Fingerprint {
+public class Fingerprint implements Serializable{
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -35,29 +34,29 @@ public class Fingerprint {
     @Column(name = "template")
     private FingerprintTemplate template;
 
-    // public Long getId() {
-    //     return id;
-    // }
+    public Long getId() {
+        return id;
+    }
 
-    // public void setId(Long id) {
-    //     this.id = id;
-    // }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    // public String getName() {
-    //     return name;
-    // }
+    public String getName() {
+        return name;
+    }
 
-    // public void setName(String name) {
-    //     this.name = name;
-    // }
+    public void setName(String name) {
+        this.name = name;
+    }
 
-    // public FingerprintTemplate getTemplate() {
-    //     return template;
-    // }
+    public FingerprintTemplate getTemplate() {
+        return template;
+    }
 
-    // public void setTemplate(FingerprintTemplate template) {
-    //     this.template = template;
-    // }
+    public void setTemplate(FingerprintTemplate template) {
+        this.template = template;
+    }
 
 }
 

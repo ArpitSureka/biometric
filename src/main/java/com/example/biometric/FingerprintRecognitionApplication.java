@@ -9,8 +9,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
+import com.example.biometric.service.StorageService;
 import com.example.biometric.storage.StorageProperties;
-import com.example.biometric.storage.StorageService;
 
 // @SpringBootApplication
 // @ComponentScan(basePackages = {"com.example.biometric.service"})

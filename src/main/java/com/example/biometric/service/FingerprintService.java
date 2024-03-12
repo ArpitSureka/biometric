@@ -12,8 +12,12 @@ import java.util.List;
 @Service
 public class FingerprintService {
 
-    @Autowired
     private FingerprintRepository fingerprintRepository;
+
+    @Autowired
+    public FingerprintService(FingerprintRepository userRepository) {
+        this.fingerprintRepository = fingerprintRepository;
+    }
 
     @Transactional
     public List<Fingerprint> getAllFingerprints() {

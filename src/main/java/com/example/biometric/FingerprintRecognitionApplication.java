@@ -18,8 +18,8 @@ import com.example.biometric.storage.StorageService;
 // @EntityScan("com.example.biometric.model")
 
 @SpringBootApplication
-@EnableJpaRepositories("com.example.biometric.*")
-@ComponentScan(basePackages = { "com.example.biometric.*" })
+@EnableJpaRepositories(basePackages = {"com.example.biometric.repository", "com.example.biometric.*"})
+@ComponentScan(basePackages = { "com.example.biometric.model", "com.example.biometric.*" })
 @EntityScan("com.example.biometric.model")   
 @EnableConfigurationProperties(StorageProperties.class)
 public class FingerprintRecognitionApplication {

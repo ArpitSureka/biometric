@@ -1,6 +1,9 @@
 package com.example.biometric.controller;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,15 +24,19 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.example.biometric.storage.StorageFileNotFoundException;
 import com.example.biometric.storage.StorageService;
-import com.example.biometric.fingerprint.SourceAFIS;
+import com.machinezoo.sourceafis.FingerprintImage;
+import com.machinezoo.sourceafis.FingerprintMatcher;
+import com.machinezoo.sourceafis.FingerprintTemplate;
+import com.example.biometric.model.Fingerprint;
+import com.example.biometric.service.FingerprintService;
 
 @Controller
 public class FileUploadController {
 
 	private final StorageService storageService;
 
-	@Autowired
-	private SourceAFIS sourceAFIS;
+    @Autowired
+    private FingerprintService fingerprintService;
 
 	public FileUploadController(StorageService storageService) {
 		this.storageService = storageService;
@@ -69,7 +76,7 @@ public class FileUploadController {
 			RedirectAttributes redirectAttributes) {
 
 		storageService.store(file);
-		Boolean output = sourceAFIS.addFingerprint(name, file.getName());
+		Boolean output = addFingerprint(name, file.getName());
 		redirectAttributes.addFlashAttribute("message",
 				output + "You successfully uploaded " + file.getOriginalFilename() + "!");
 		return "redirect:/";
@@ -80,7 +87,7 @@ public class FileUploadController {
 			RedirectAttributes redirectAttributes) {
 
 		storageService.store(file);
-		String output = sourceAFIS.compareAllFingerprints(file.getName());
+		String output = compareAllFingerprints(file.getName());
 		redirectAttributes.addFlashAttribute("message",
 				"You successfully uploaded " + file.getOriginalFilename() + "!");
 
@@ -94,6 +101,46 @@ public class FileUploadController {
 	public ResponseEntity<?> handleStorageFileNotFound(StorageFileNotFoundException exc) {
 		return ResponseEntity.notFound().build();
 	}
-	
+
+	private Boolean addFingerprint(String name, String filePath) {
+
+        FingerprintImage image;
+        try {
+            image = new FingerprintImage(Files.readAllBytes(Paths.get(filePath)));
+            var template = new FingerprintTemplate(image);
+            Fingerprint newFingerprint = new Fingerprint();
+            newFingerprint.setName(name);
+            newFingerprint.setTemplate(template);
+            fingerprintService.saveFingerprint(newFingerprint);
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    private String compareAllFingerprints(String filePath) {
+        FingerprintImage image;
+        try {
+            image = new FingerprintImage(Files.readAllBytes(Paths.get(filePath)));
+            var probe = new FingerprintTemplate(image);
+            var matcher = new FingerprintMatcher(probe);
+            double max = Double.NEGATIVE_INFINITY;
+            String match = "None Matched";
+            List<Fingerprint> allFingerprints = fingerprintService.getAllFingerprints();
+            for (Fingerprint fingerprint : allFingerprints) {
+                double similarity = matcher.match(fingerprint.getTemplate());
+                if (similarity > max) {
+                    max = similarity;
+                    match = fingerprint.getName() + " matched with " + similarity * 100 + "% similarity";
+                }
+            }
+            return match;
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 
 }

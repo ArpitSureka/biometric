@@ -7,6 +7,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,8 +43,37 @@ public class FileSystemStorageService implements StorageService {
 			if (file.isEmpty()) {
 				throw new StorageException("Failed to store empty file.");
 			}
+			String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+			String originalFileName = file.getOriginalFilename();
+			String extension = originalFileName.substring(originalFileName.lastIndexOf('.'));
+			String newFileName = timeStamp + extension;
+
 			Path destinationFile = this.rootLocation.resolve(
-					Paths.get(file.getOriginalFilename()))
+					Paths.get(newFileName))
+					.normalize().toAbsolutePath();
+			if (!destinationFile.getParent().equals(this.rootLocation.toAbsolutePath())) {
+				// This is a security check
+				throw new StorageException(
+						"Cannot store file outside current directory.");
+			}
+			try (InputStream inputStream = file.getInputStream()) {
+				Files.copy(inputStream, destinationFile,
+					StandardCopyOption.REPLACE_EXISTING);
+			}
+		}
+		catch (IOException e) {
+			throw new StorageException("Failed to store file.", e);
+		}
+	}
+
+	@Override
+	public void store(MultipartFile file, String fileName) {
+		try {
+			if (file.isEmpty()) {
+				throw new StorageException("Failed to store empty file.");
+			}
+			Path destinationFile = this.rootLocation.resolve(
+					Paths.get(fileName))
 					.normalize().toAbsolutePath();
 			if (!destinationFile.getParent().equals(this.rootLocation.toAbsolutePath())) {
 				// This is a security check

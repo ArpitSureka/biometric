@@ -1,8 +1,11 @@
 package com.example.biometric.controller;
 
 import java.io.IOException;
+import java.lang.instrument.Instrumentation;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,17 +33,19 @@ import com.machinezoo.sourceafis.FingerprintImage;
 import com.machinezoo.sourceafis.FingerprintMatcher;
 import com.machinezoo.sourceafis.FingerprintTemplate;
 
+
+// import com.example.biometric.storage.StorageProperties;
 @Controller
 public class FileUploadController {
 
-	private final StorageService storageService;
+	@Autowired
+	private StorageService storageService;
 
     @Autowired
     private FingerprintService fingerprintService;
 
-	public FileUploadController(StorageService storageService) {
-		this.storageService = storageService;
-	}
+	@Autowired
+	private static Instrumentation instrumentation;
 
 	@GetMapping("/")
 	public String listUploadedFiles(Model model) throws IOException {
@@ -74,9 +79,16 @@ public class FileUploadController {
 	@PostMapping("/")
 	public String handleFileUpload(@RequestParam("file") MultipartFile file, @RequestParam("name") String name,
 			RedirectAttributes redirectAttributes) {
+		
+		String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+		String originalFileName = file.getOriginalFilename();
+		System.out.println(originalFileName);
+		String extension = originalFileName.substring(originalFileName.lastIndexOf('.'));
+		String newFileName = timeStamp + extension;
 
-		storageService.store(file);
-		Boolean output = addFingerprint(name, file.getName());
+		storageService.store(file, newFileName);
+		// change file name 
+		Boolean output = addFingerprint(name, newFileName, false);
 		redirectAttributes.addFlashAttribute("message",
 				output + "You successfully uploaded " + file.getOriginalFilename() + "!");
 		return "redirect:/";
@@ -85,9 +97,14 @@ public class FileUploadController {
 	@PostMapping("/compare")
 	public String handleFileCompare(@RequestParam("file") MultipartFile file,
 			RedirectAttributes redirectAttributes) {
+		
+		String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+		String originalFileName = file.getOriginalFilename();
+		String extension = originalFileName.substring(originalFileName.lastIndexOf('.'));
+		String newFileName = timeStamp + extension;
 
-		storageService.store(file);
-		String output = compareAllFingerprints(file.getName(), false);
+		storageService.store(file, newFileName);
+		String output = compareAllFingerprints(newFileName, false);
 		redirectAttributes.addFlashAttribute("message",
 				"You successfully uploaded " + file.getOriginalFilename() + "!");
 
@@ -102,12 +119,52 @@ public class FileUploadController {
 		return ResponseEntity.notFound().build();
 	}
 
-	private Boolean addFingerprint(String name, String filePath) {
+	public Boolean addFingerprint(String name, String filePath, Boolean useTemplate) {
+		if (useTemplate) {
+			return addFingerprintUsingTemplate(name, filePath);
+		} else {
+			return addFingerprintUsingImages(name, filePath);
+		}
+	}
+
+	private Boolean addFingerprintUsingTemplate(String name, String filePath) {
 
         FingerprintImage image;
         try {
-            image = new FingerprintImage(Files.readAllBytes(Paths.get(filePath)));
-            var template = new FingerprintTemplate(image);
+			System.out.println(filePath);
+			System.out.println("fdfvidfbndgfbtrdt");
+			System.out.println(storageService.load(filePath));
+			byte[] fingerprintFile = Files.readAllBytes(storageService.load(filePath));
+			   // Get the size of the byte array
+			int size = fingerprintFile.length;
+			   // Print the size
+			System.out.println("Size of fingerprintFile: " + size + " bytes");
+            image = new FingerprintImage(fingerprintFile);
+			System.out.println(image);
+			// print datatype of image
+			System.out.println(image.getClass().getName());
+			//print size of fingerprintFile
+			System.out.println("sdsronvgvueirnvietvgerigvegtv");
+			System.out.println(fingerprintFile);
+			System.out.println(fingerprintFile.length);
+			//print pixel size of fingerprintFile
+			System.out.println("egtrthrthtrgrtgrtgrtg");
+			System.out.println(fingerprintFile.toString().toCharArray().length);
+			System.out.println(fingerprintFile.toString());
+            FingerprintTemplate template = new FingerprintTemplate(image);
+
+			// print template
+			
+
+			System.out.println(template);
+			// print datatype of template
+			System.out.println(template.getClass().getName());
+			// print size a variable is taking
+			System.out.println("fgbgfhrtggerger");
+			System.out.println(template);
+			System.out.println(template.toByteArray().length);
+			
+
             Fingerprint newFingerprint = new Fingerprint();
             newFingerprint.setName(name);
             newFingerprint.setTemplate(template);
@@ -118,6 +175,14 @@ public class FileUploadController {
         }
         return false;
     }
+
+	private Boolean addFingerprintUsingImages(String name, String filePath) {
+		Fingerprint newFingerprint = new Fingerprint();
+		newFingerprint.setName(name);
+		newFingerprint.setPath(filePath);
+		fingerprintService.saveFingerprint(newFingerprint);
+		return true;
+	}
 
 	private String compareAllFingerprints(String filePath, Boolean useTemplate) {
 		if (useTemplate) {
@@ -131,7 +196,7 @@ public class FileUploadController {
     private String compareAllFingerprintsUsingTemplate(String filePath) {
         FingerprintImage image;
         try {
-            image = new FingerprintImage(Files.readAllBytes(Paths.get(filePath)));
+            image = new FingerprintImage(Files.readAllBytes(storageService.load(filePath)));
             var probe = new FingerprintTemplate(image);
             var matcher = new FingerprintMatcher(probe);
             double max = Double.NEGATIVE_INFINITY;
@@ -164,21 +229,25 @@ public class FileUploadController {
 				System.out.println(fingerprintFile);
 			}
 
+			System.out.println("sdsronvgvueirnvietvgerigvegtv");
 
-            image = new FingerprintImage(Files.readAllBytes(Paths.get(filePath)));
+            image = new FingerprintImage(Files.readAllBytes(storageService.load(filePath)));
             var probe = new FingerprintTemplate(image);
             var matcher = new FingerprintMatcher(probe);
             double max = Double.NEGATIVE_INFINITY;
             String match = "None Matched";
             List<Fingerprint> allFingerprints = fingerprintService.getAllFingerprints();
+			String results = " ";
             for (Fingerprint fingerprint : allFingerprints) {
-                double similarity = matcher.match(fingerprint.getTemplate());
+				var candidate = new FingerprintTemplate(new FingerprintImage(Files.readAllBytes(storageService.load(fingerprint.getPath()))));
+                double similarity = matcher.match(candidate);
                 if (similarity > max) {
                     max = similarity;
-                    match = fingerprint.getName() + " matched with " + similarity * 100 + "% similarity";
+                    match = fingerprint.getName() + " matched with " + similarity  +  "similarity score"+ "\\n";
                 }
+				results = results + fingerprint.getName() + " " + similarity + "\n";
             }
-            return match;
+            return match + results;
 
         } catch (IOException e) {
             e.printStackTrace();

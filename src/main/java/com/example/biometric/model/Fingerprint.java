@@ -2,6 +2,9 @@ package com.example.biometric.model;
 
 import java.io.Serializable;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.machinezoo.sourceafis.FingerprintTemplate;
 
 import jakarta.persistence.Column;
@@ -32,7 +35,10 @@ public class Fingerprint implements Serializable{
     private String name;
 
     @Column(name = "template")
-    private FingerprintTemplate template;
+    private String template;
+
+    @Column(name = "path")
+    private String path;
 
     public Long getId() {
         return id;
@@ -50,12 +56,33 @@ public class Fingerprint implements Serializable{
         this.name = name;
     }
 
+    public String getPath() {
+        return path;
+    }
+
+    public void setPath(String path) {
+        this.path = path;
+    }
+
     public FingerprintTemplate getTemplate() {
-        return template;
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
+            return objectMapper.readValue(this.template , FingerprintTemplate.class);
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("Error converting JSON to FingerprintTemplate", e);
+        }
     }
 
     public void setTemplate(FingerprintTemplate template) {
-        this.template = template;
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
+        try {
+            this.template = objectMapper.writeValueAsString(template);
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("Error saving JSON from FingerprintTemplate", e);
+            // Handle serialization error
+        }
     }
 
 }

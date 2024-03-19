@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  springboot-app:
+    restart: unless-stopped
+    container_name: arpit-btp
+    build: .
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./upload-dir:/app/upload-dir
